@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Contacts</title>
+    <meta charset="utf-8" />
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/lodash.js/2.4.1/lodash.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/backbone.js/1.1.0/backbone-min.js"></script>
+    <!--Templates-->
+    <script type="text/template" id="contact-template">
+        <li>
+            <a href='contact.php?id=<%= id %>'>
+                <%= prenom %> <%= nom %>
+            </a>
+        </li>
+    </script>
+    <script>
+        (function( $, Backbone  )
+        {
+            // Données et models
+            /* Contact { id:1, nom:"ALLIOD", prenom:"Sebastien" }  */
+            var ContactModel = Backbone.Model.extend
+            (
+                {
+                    defaults :
+                    {
+                        nom: "",
+                        prenom: ""
+                    }
+                }
+            );
+            /* ContactCollection [ new Contact(), new Contact() ]  */
+            var ContactsCollection = Backbone.Collection.extend
+            (
+               {
+                    model : ContactModel
+               }
+            );
+
+            // Vues
+            var ContactView = Backbone.View.extend
+            (
+               {
+                   tagName : "li"
+               }
+            );
+
+            var ContactListView = Backbone.View.extend
+            (
+               {
+                   collection : null,
+                   template : _.template( $( "#contact-template" ).html() ),
+                   initialize : function()
+                   {
+                       // Liaison événementielle entre la collection et la vue
+                       // !! Attention à la portée du callback !!
+                       // this.collection.on( "add", this.render, this );
+                       // Portée préservée en utilisant jquery
+                       //this.collection.on( "add", $.proxy( this.render, this ) );
+                       // ! Zombie view : best practice
+                       this.listenTo( this.collection, "add", this.render );
+                       this.render();
+                   }
+                   ,render : function()
+                   {
+                       var self = this;
+                       this.$el.empty();
+                       this.collection.each
+                       (
+                           function( contact )
+                           {
+                                self.$el.append
+                                (
+                                    self.template( contact.toJSON() )
+                                )
+                                console.log(contact.toJSON());
+                           }
+                       );
+                   }
+               }
+            );
+
+
+            //Données mockups correspondant à la liste des contacts
+            var contacts;
+
+            /**
+             * Document ready event
+             * alias de $(document).ready( function(){} );
+             */
+            $( function ()
+                {
+                    /**
+                     *  Réception des données du serveur
+                     *
+                     */
+                    var main = function()
+                    {
+                        contacts = new ContactsCollection();
+
+                        // Annule le message de chargement
+                        $( "#loading").remove();
+
+                        // Renseigne les éléments de la liste
+                        var contactListView = new ContactListView
+                        (
+                             {
+                                 el          : "#contact_list"
+                                 , collection: contacts
+                             }
+                        );
+
+                        // On ajoute les données APRÈS la création de la vue
+                        // pour que l'événement add soit utilisé
+                        contacts.add( new ContactModel( { id:1, nom:"ALLIOD", prenom:"Sebastien" } ) );
+                        contacts.add( new ContactModel( { id:2, nom:"MANNEVILLE", prenom:"Fabien" } ) );
+                        contacts.add( new ContactModel( { id:3, nom:"DEHAUSSY", prenom:"Matthieu" } ) );
+
+                    };
+
+
+                    $( "body" ).append( "<h1 id='loading'>Merci de patienter pendant le chargement des données</h1>" );
+                    // Active une pseudo requête async HTTP
+                    setTimeout( main, 2000 );
+
+                }
+            );
+        })(jQuery, Backbone );
+
+    </script>
+</head>
+<body>
+<ul id="contact_list">
+</ul>
+</body>
+</html>
